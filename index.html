@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jadwal Kuliah</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00c2ff">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0d0d0d;
+      color: #f1f1f1;
+      padding: 20px;
+      line-height: 1.6;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    body.light { background-color: #f9f9f9; color: #111; }
+    h1 { font-size: 22px; text-align: center; margin-bottom: 10px; font-weight: 600; }
+    h2 { text-align: center; font-size: 14px; color: #aaa; margin-bottom: 20px; }
+    .box {
+      background-color: #1a1a1a;
+      padding: 16px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      transition: background-color 0.3s ease;
+    }
+    body.light .box { background-color: #ffffff; color: #111; }
+    .highlight {
+      background-color: #262626;
+      border-left: 4px solid #00c2ff;
+      padding-left: 12px;
+    }
+    body.light .highlight { background-color: #e6f7ff; }
+    .label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #00c2ff; }
+    .info { font-size: 14px; color: #ddd; }
+    body.light .info { color: #333; }
+    footer { text-align: center; margin-top: 30px; font-size: 13px; color: #666; }
+    #themeToggle {
+      position: fixed; top: 10px; right: 10px; width: 36px; height: 36px;
+      background-color: #333; color: #fff; border: none; border-radius: 50%;
+      cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+      transition: background-color 0.3s ease;
+    }
+    body.light #themeToggle { background-color: #ddd; color: #111; }
+    @media (max-width: 480px) {
+      h1 { font-size: 20px; }
+      .box { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <button id="themeToggle">🌙</button>
+  <h1>📚 Jadwal Kuliah Realtime</h1>
+  <h2 id="currentTime">Memuat waktu...</h2>
+  <div id="currentClass" class="box highlight"></div>
+  <div id="nextClass" class="box"></div>
+  <div id="weeklySchedule" class="box"></div>
+  <footer>© mhdhasan.r</footer>
+  <script>
+    const jadwal = {
+      "Senin": [["07:00", "09:00", "Manajemen Energi", "ZAL", "-", "ME 104"],
+                ["09:00", "11:00", "Teori Mesin Listrik Arus Bolak-Balik", "ZAL", "-", "ME 104"],
+                ["13:00", "16:00", "Praktikum Mesin Listrik Arus Bolak-Balik", "ZAL", "AQZ", "ME 204"]],
+      "Selasa": [["07:00", "11:00", "Praktikum Transformator", "HDN", "AQZ", "ME 108"],
+                 ["13:00", "18:00", "Praktikum Sistem Proteksi", "AGN", "MEZ", "ME 106"]],
+      "Rabu": [["07:00", "11:00", "Perawatan dan Perbaikan", "MUZ", "AQZ", "ME 205"],
+               ["11:00", "13:00", "Kewirausahaan", "IQB", "-", "125"],
+               ["14:00", "16:00", "Teori Transformator", "HDN", "-", "125"]],
+      "Kamis": [["07:00", "14:00", "Instalasi Listrik Industri", "AGN", "CKP", "ME 106"],
+                ["14:00", "16:00", "Teori Sistem Proteksi", "AGN", "-", "130"]],
+      "Jumat": [["07:00", "12:30", "Distribusi Tenaga Listrik", "ISD", "MEZ", "ME 204"]]
+    };
+
+    function updateSchedule() {
+      const now = new Date();
+      const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      const dayIndex = now.getDay();
+      const day = days[dayIndex];
+      const currentTimeStr = now.toTimeString().slice(0, 5);
+      document.getElementById("currentTime").textContent = `Hari ini: ${day}, ${currentTimeStr} WIB`;
+
+      function timeToMinutes(t) {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      }
+
+      const currentMinutes = timeToMinutes(currentTimeStr);
+      let foundCurrent = false;
+      let currentClassHTML = `<div class="label">Sedang Berlangsung</div><div class="info">Tidak ada kelas saat ini.</div>`;
+      let nextClassHTML = `<div class="label">Selanjutnya</div><div class="info">Tidak ada kelas berikutnya.</div>`;
+
+      for (let i = 0; i < 7; i++) {
+        let checkDayIndex = (dayIndex + i) % 7;
+        let checkDay = days[checkDayIndex];
+        if (!jadwal[checkDay]) continue;
+
+        for (const [start, end, subject, lecturer, assistant, room] of jadwal[checkDay]) {
+          const startMin = timeToMinutes(start);
+          const endMin = timeToMinutes(end);
+
+          if (!foundCurrent && checkDayIndex === dayIndex && currentMinutes >= startMin && currentMinutes < endMin) {
+            currentClassHTML = `
+              <div class="label">Sedang Berlangsung</div>
+              <div class="info"><strong>${subject}</strong><br>${start} - ${end} WIB<br>Ruangan: ${room}<br>Dosen: ${lecturer}${assistant !== '-' ? `<br>Asisten: ${assistant}` : ''}</div>
+            `;
+            foundCurrent = true;
+          }
+
+          if (!nextClassHTML.includes("<strong>") && (
+            checkDayIndex > dayIndex ||
+            (checkDayIndex === dayIndex && currentMinutes < startMin) ||
+            i > 0
+          )) {
+            nextClassHTML = `
+              <div class="label">Selanjutnya</div>
+              <div class="info"><strong>${subject}</strong><br>${start} - ${end} WIB<br>${checkDay}<br>Ruangan: ${room}<br>Dosen: ${lecturer}${assistant !== '-' ? `<br>Asisten: ${assistant}` : ''}</div>
+            `;
+            break;
+          }
+        }
+
+        if (nextClassHTML.includes("<strong>")) break;
+      }
+
+      document.getElementById("currentClass").innerHTML = currentClassHTML;
+      document.getElementById("nextClass").innerHTML = nextClassHTML;
+    }
+
+    function renderWeeklySchedule() {
+      let html = '<div class="label">Jadwal Mingguan</div>';
+      for (const [hari, daftar] of Object.entries(jadwal)) {
+        html += `<div class="info"><strong>${hari}</strong><br>`;
+        daftar.forEach(([mulai, selesai, matkul, dosen, asdos, ruang]) => {
+          html += `${mulai}-${selesai} ${matkul} (${ruang})<br>`;
+        });
+        html += '</div><br>';
+      }
+      document.getElementById("weeklySchedule").innerHTML = html;
+    }
+
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle("light");
+      document.getElementById("themeToggle").textContent = isLight ? "☀️" : "🌙";
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+    }
+
+    document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light");
+      document.getElementById("themeToggle").textContent = "☀️";
+    }
+
+    updateSchedule();
+    renderWeeklySchedule();
+    setInterval(updateSchedule, 60000);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker terdaftar'))
+        .catch(err => console.error('SW gagal:', err));
+    }
+  </script>
+</body>
+</html>
