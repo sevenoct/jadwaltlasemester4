@@ -164,6 +164,39 @@
         .then(() => console.log('Service Worker terdaftar'))
         .catch(err => console.error('SW gagal:', err));
     }
-  </script>
+  
+function checkUpcomingNotifications() {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const dayIndex = now.getDay();
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const today = days[dayIndex];
+
+  if (!jadwal[today]) return;
+
+  jadwal[today].forEach(([start, end, subject]) => {
+    const startMinutes = parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]);
+    if (startMinutes - currentMinutes === 10) {
+      showNotification(`Kelas "${subject}" akan dimulai dalam 10 menit.`);
+    }
+  });
+}
+
+function showNotification(message) {
+  if (Notification.permission === "granted") {
+    new Notification("Pengingat Kelas", {
+      body: message,
+      icon: "icon-192.png"
+    });
+  }
+}
+
+if ("Notification" in window && Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+setInterval(checkUpcomingNotifications, 60000);
+
+</script>
 </body>
 </html>
